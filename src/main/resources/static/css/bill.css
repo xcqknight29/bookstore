@@ -1,0 +1,14 @@
+.el-popover {
+  width: 40%;
+}
+
+.el-steps {
+  margin-left: 60px;
+  margin-right: 60px;
+}
+
+.actionDialog .el-dialog__body {
+  height: 28px;
+}
+
+

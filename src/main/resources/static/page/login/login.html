@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>登录账号</title>
+    <link rel="icon" type="image/x-icon" href="../../images/login_icon.ico">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/login.css">
+</head>
+<body>
+
+<div class="login-page">
+    <div class="login-app">
+        <el-image class="image login_icon" src="../../images/login_icon.png"></el-image>
+        <p class="login_title">佳登书店书籍进销存管理系统</p>
+        <p class="login_title">登录</p>
+        <el-form :model="ruleForm" status-icon :rules="rules" ref="ruleForm" label-width="40px" class="demo-ruleForm">
+            <el-form-item label="账号" prop="name">
+                <el-input v-model="ruleForm.name"></el-input>
+            </el-form-item>
+            <el-form-item label="密码" prop="password">
+                <el-input type="password" v-model="ruleForm.password"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="warning" size="small" @click="handleLogin('ruleForm')">登 录</el-button>
+                <el-button size="small" @click="resetForm('ruleForm')">重 置</el-button>
+            </el-form-item>
+        </el-form>
+    </div>
+</div>
+
+<!--  导入vue.js  -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<!--  导入elementUi  -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<!--  导入axios  -->
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<!--通用js-->
+<script src="../../js/request.js"></script>
+<!--axios配置-->
+<script src="../../js/common.js"></script>
+<script>
+    new Vue({
+        el: '.login-app',
+        data() {
+            var validateName = (rule, value, callback) => {
+                //console.log(value.length);
+                if (value === '') {
+                    callback(new Error('请输入账号'));
+                } else if(value.length < 6) {
+                    callback(new Error('过短'));
+                } else if(value.length > 20) {
+                    callback(new Error('过长'));
+                } else {
+                    callback();
+                }
+            };
+            var validatePass = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('请输入密码'));
+                } else if(value.length < 6) {
+                    callback(new Error('过短'));
+                } else if(value.length > 20) {
+                    callback(new Error('过长'));
+                } else {
+                    callback();
+                }
+            };
+            return {
+                ruleForm: {
+                    name: '111111',
+                    password: '123456'
+                },
+                rules: {
+                    name: [
+                        { validator: validateName, trigger: 'blur' }
+                    ],
+                    password: [
+                        { validator: validatePass, trigger: 'blur' }
+                    ]
+                }
+            };
+        },
+        methods: {
+
+            handleLogin() {
+                this.$refs.ruleForm.validate(async (valid) => {
+                    if (valid) {
+                        const url = 'member/login';
+                        const loginInfo = {
+                            name: this.ruleForm.name,
+                            password: this.ruleForm.password
+                        };
+                        let res = await submitData('post', url, loginInfo);
+                        if (String(res.data.code) === '1') {
+                            localStorage.setItem('userId', res.data.data.id);
+                            localStorage.setItem('userName', res.data.data.userName);
+                            window.location.href = '/page/main.html';
+                        } else {
+                            this.$message.error(res.data.msg);
+                        }
+                    }
+                })
+            },
+
+            resetForm(formName) {
+                this.$nextTick(function () {
+                    this.$refs[formName].resetFields();
+                });
+            },
+
+        }
+    })
+
+</script>
+</body>
+</html>

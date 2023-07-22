@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>库存管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/storage.css">
+</head>
+<body>
+<div class="app" style="height: 100%;">
+    <el-container style="height: 100%;">
+
+        <el-header>
+            <!--搜索图书-输入框-->
+            <el-input v-model="input"
+                      placeholder="按图书信息查询"
+                      style="width: 250px"
+                      @keyup.enter.native="getBook">
+                <i slot="suffix"
+                   class="el-input__icon el-icon-search"
+                   style="cursor: pointer"
+                   @click="getBook"></i>
+            </el-input>
+        </el-header>
+
+        <el-main>
+            <!--表格-->
+            <el-table :data="tableData"
+                      stripe
+                      height="100%">
+                <el-table-column prop="bookName" label="书名"></el-table-column>
+                <el-table-column prop="className" label="分类">
+                    <templata slot-scope="scope">
+                        <span v-if="setClass(scope.row.bookClass) == null">未分类</span>
+                        <span v-else>{{setClass(scope.row.bookClass).className}}</span>
+                    </templata>
+                </el-table-column>
+                <el-table-column prop="price" label="建议售价(￥)"></el-table-column>
+                <el-table-column prop="bookAmount" label="库存数量"></el-table-column>
+                <el-table-column prop="action" label="操作">
+                    <templata slot-scope="scope">
+                        <el-button size="mini"
+                                   type="warning"
+                                   @click="update(scope.row)">
+                            更改库存
+                        </el-button>
+                    </templata>
+                </el-table-column>
+            </el-table>
+
+            <!--修改库存对话框-->
+            <el-dialog class="update-dialog"
+                       @open="resetUpdate('updateForm')"
+                       title="调整库存"
+                       :visible.sync="updateDialog"
+                       width="30%"
+                       :modal="false"
+                       ref="updateDialog">
+                <el-form :model="updateForm" ref="updateForm">
+                    <el-form-item label="书名" :label-width='inputWidth' prop="bookName">
+                        <el-input v-model="updateForm.bookName" disabled></el-input>
+                    </el-form-item>
+                    <el-form-item label="价格" :label-width='inputWidth' prop="price">
+                        <el-input v-model="updateForm.price" disabled></el-input>
+                    </el-form-item>
+                    <el-form-item label="库存数量" :label-width='inputWidth' prop="bookAmount">
+                        <el-input v-model="updateForm.bookAmount" disabled></el-input>
+                    </el-form-item>
+                    <el-form-item label="调整库存" :label-width='inputWidth' prop="num">
+                        <el-switch v-model="updateForm.isIncrease"
+                                   active-text="增加库存"
+                                   inactive-text="减少库存"
+                                   @change="inputChange"></el-switch>
+                        <el-input-number v-model="updateForm.num"
+                                         :min="0"
+                                         :max="updateForm.isIncrease ? 10000 : updateForm.bookAmount"
+                                         size="medium"></el-input-number>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="updateDialog = false">取 消</el-button>
+                    <el-button type="primary" @click="submitUpdate">确 定</el-button>
+                </div>
+            </el-dialog>
+        </el-main>
+
+        <el-footer>
+            <el-pagination
+                    :current-page="this.page"
+                    :page-size="20"
+                    :pager-count="11"
+                    layout="prev, pager, next"
+                    :total="this.total"
+                    :background="true"
+                    @current-change="pageChange">
+            </el-pagination>
+        </el-footer>
+
+    </el-container>
+</div>
+<!--  导入vue.js  -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<!--  导入elementUi  -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<!--  导入axios  -->
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<!--  通用js  -->
+<script src="../../js/common.js"></script>
+<!--  axios配置  -->
+<script src="../../js/request.js"></script>
+<script>
+    new Vue({
+
+        el: '.app',
+
+        data() {
+
+            //不用
+            var checkName = (rule, value, callback) => {
+                if(!this.updateForm.isIncrease || value > this.updateForm) {
+                    callback(new Error('增减数量出错'));
+                }
+            };
+
+            return {
+
+                page: 1,
+                total: 100,
+                input: '',
+                inputWidth: '25%',
+                updateDialog: false,
+
+                /*rulesA: {
+				  num: [{validator: checkName, trigger: 'change'}],
+				},*/
+
+                updateForm: {
+                    id: '',
+                    bookName: '',
+                    price: '',
+                    //当前的数量
+                    bookAmount: 0,
+                    //减少:增加 false:true
+                    isIncrease: false,
+                    //变化数量
+                    num: 0,
+                },
+                tableData: [],
+                /*tableData: [{
+					id: '1617769096911986690',
+					bookName: '冰与火之歌1',
+					bookClass: 1,
+					className: '',
+					bookAmount: 3,
+					price: 32.9
+				},{
+					id: '2',
+					bookName: '冰与火之歌2',
+					bookClass: 1,
+					className: '',
+					bookAmount: 5,
+					price: 32.9
+				}],*/
+                classList: [],
+                /*classList: [{
+					classCode: 1,
+					className: '文学',
+				}],*/
+            }
+        },
+
+        created() {
+            this.getBook();
+            this.getClass();
+        },
+
+        methods: {
+
+            pageChange(val) {
+                this.page = val;
+                this.getBook();
+            },
+
+            inputChange() {
+                this.updateForm.num = 0;
+                console.log(this.updateForm.num);
+            },
+
+            getBook() {
+                const params = {
+                    page: this.page,
+                    name: this.input ? this.input : undefined
+                }
+                /*console.log(params.name)*/
+                const url1 = params.name !== undefined ? 'book/page?page=' + params.page + '&name=' + params.name : 'book/page?page=' + params.page;
+                /*console.log(url)*/
+                /*调用axios发送请求*/
+                submitData('get', url1).then(res => {
+                    const r = res.data;
+                    //console.log(r.code);
+                    if (String(r.code) === '1') {
+                        //console.log('更改数据');
+                        this.tableData = r.data.records;
+                        this.total = parseInt(r.data.total);
+                    }
+                }).catch(err => {
+                    this.$message.error('请求出错了：' + err)
+                })
+            },
+
+            getClass() {
+                const url2 = 'book/class'
+                submitData('get', url2).then(res => {
+                    const r = res.data;
+                    //console.log(r.code);
+                    if (String(r.code) === '1') {
+                        //console.log('更改数据');
+                        this.classList = r.data;
+                    }
+                }).catch(err => {
+                    this.$message.error('请求出错了：' + err)
+                })
+            },
+
+            setClass(code) {
+                return this.classList.find((item) => {
+                    return item.classCode === code;
+                });
+            },
+
+            update(row) {
+                this.updateForm.id = row.id;
+                this.updateForm.bookName = row.bookName;
+                this.updateForm.price = row.price;
+                this.updateForm.bookAmount = row.bookAmount;
+                this.updateDialog = true;
+            },
+
+            submitUpdate() {
+                if(this.updateForm.num){
+                    //this.$refs.updateForm.validator((valid) => {
+                    //  if(valid) {
+                    // const url = 'book/storage?increase=' + this.updateForm.isIncrease
+                    //         + '&id=' + this.updateForm.id
+                    //         + '&bookName=' + this.updateForm.bookName
+                    //         + '&num=' + this.updateForm.num
+                    //         + '&price=' + this.updateForm.price;
+                    const url = 'book/storage'
+                    const data = {
+                        increase: this.updateForm.isIncrease,
+                        id: this.updateForm.id,
+                        bookName: this.updateForm.bookName,
+                        num: this.updateForm.num,
+                        price: this.updateForm.price
+                    }
+                    submitGet('patch', url, data).then(res => {
+                        //console.log(res);
+                        //const r = res.data;
+                        //console.log(r.code);
+                        if (res.data.code === 1) {
+                            //console.log('更改数据');
+                            this.$message.success((this.updateForm.isIncrease ? '添加' : '减少') + '库存成功');
+                            this.getBook();
+                            this.updateDialog = false;
+                        }
+                    }).catch(err => {
+                        this.$message.error('请求出错了：' + err);
+                    })
+                    //    }
+                    //  })
+                } else {
+                    this.$message('输入欲改变的值');
+                }
+
+            },
+
+            /*resetValidate(formName) {
+			  this.$nextTick(function () {
+				this.$refs[formName].clearValidate();
+			  })
+			},*/
+
+            cancelClass() {
+                this.updateForm.num = 0;
+                this.updateForm.isIncrease = false;
+            },
+
+            resetUpdate() {
+                this.cancelClass();
+                //this.resetValidate('classForm');
+            },
+
+        }
+    })
+</script>
+</body>
+</html>

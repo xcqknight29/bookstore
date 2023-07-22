@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UserList</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/user.css">
+</head>
+<body>
+<div class="app" style="height: 100%;">
+    <el-container style="height: 100%;">
+        <el-header>
+            <!--搜索员工账号-->
+            <el-input
+                    v-model="input"
+                    placeholder="按员工信息查询"
+                    style="width: 250px"
+                    @keyup.enter.native="getUser"
+            >
+                <i
+                        slot="suffix"
+                        class="el-input__icon el-icon-search"
+                        style="cursor: pointer"
+                        @click="getUser"
+                ></i>
+            </el-input>
+
+            <!--添加员工按钮-->
+            <el-button class="addButton"
+                       size="medium"
+                       @click="addForm = true"
+                       style="float: right;" type="primary"
+                       icon="el-icon-plus">添加员工</el-button>
+            <!--添加员工对话框-->
+            <el-dialog @open="openAdd"
+                       title="添加员工"
+                       :visible.sync="addForm"
+                       width="30%"
+                       :modal="false">
+                <!--添加员工表单-->
+                <el-form :model="addData" :rules="rules2" ref="addForm">
+                    <el-form-item label="账号" :label-width='inputWidth' prop="name" >
+                        <el-input v-model="addData.name" placeholder="请输入账号"></el-input>
+                    </el-form-item>
+                    <el-form-item label="姓名" :label-width='inputWidth' prop="userName">
+                        <el-input v-model="addData.userName" placeholder="请输入姓名"></el-input>
+                    </el-form-item>
+                    <el-form-item label="手机号" :label-width='inputWidth' prop="phone">
+                        <el-input v-model="addData.phone" placeholder="请输入手机号"></el-input>
+                    </el-form-item>
+                    <el-form-item label="邮箱地址" :label-width='inputWidth' prop="email">
+                        <el-input v-model="addData.email" placeholder="请输入Email"></el-input>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="addForm = false">取 消</el-button>
+                    <el-button type="primary" @click="submitAddUser">确 定</el-button>
+                </div>
+            </el-dialog>
+
+        </el-header>
+
+        <el-main>
+            <!--
+			表格数据展示
+			!id 员工ID
+			name 员工账号
+			user_name 用户名
+			!password 密码
+			phoneNum 电话号码
+			email 电子邮件
+			!state 状态启用1/停用0
+			!updateTime 更新时间
+			!createTime 创建时间
+			-->
+            <el-table
+                    :data="tableData"
+                    stripe
+                    height="100%">
+                <el-table-column prop="name" label="账号"></el-table-column>
+                <el-table-column prop="userName" label="姓名"></el-table-column>
+                <el-table-column prop="phone" label="电话号码"></el-table-column>
+                <el-table-column prop="email" label="电子邮件"></el-table-column>
+                <!--编辑和停用员工按钮-->
+                <el-table-column prop="state" label="操作">
+                    <templata slot-scope="scope">
+                        <el-button
+                                size="mini"
+                                type="warning"
+                                @click="updateUser(scope.row)">编 辑</el-button>
+                        <el-button
+                                size="mini"
+                                :type="scope.row.state === '1' ? 'danger' : 'success'"
+                                @click="switchState(scope.row)">
+                            {{scope.row.state === '1' ? '停 用' : '启 用'}}
+                        </el-button>
+                    </templata>
+                </el-table-column>
+            </el-table>
+            <!--编辑员工对话框-->
+            <el-dialog @open="openUpdate"
+                       title="编辑员工"
+                       :visible.sync="updateForm"
+                       width="30%"
+                       :modal="false">
+                <!--编辑员工表单-->
+                <el-form :model="updateData" :rules="rules" ref="updateForm">
+                    <el-form-item label="账号" :label-width='inputWidth' prop="name">
+                        <el-input :disabled="true" v-model="updateData.name"></el-input>
+                    </el-form-item>
+                    <el-form-item label="姓名" :label-width='inputWidth' prop="userName">
+                        <el-input v-model="updateData.userName" placeholder="请输入姓名"></el-input>
+                    </el-form-item>
+                    <el-form-item label="手机号" :label-width='inputWidth' prop="phone">
+                        <el-input v-model="updateData.phone" placeholder="请输入手机号"></el-input>
+                    </el-form-item>
+                    <el-form-item label="邮箱地址" :label-width='inputWidth' prop="email">
+                        <el-input v-model="updateData.email" placeholder="请输入Email"></el-input>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="updateForm = false">取 消</el-button>
+                    <el-button type="primary" @click="submitUpdateUser">确 定</el-button>
+                </div>
+            </el-dialog>
+            <!--停用员工对话框-->
+            <el-dialog :title=state
+                       :visible.sync="switchForm"
+                       width="30%"
+                       :modal="false"
+                       ref="switchForm">
+                <span>{{(this.switchData.state == '1' ? '是否停用账号' : '是否启用账号') + this.switchData.name + '?'}}</span>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="switchForm = false">取 消</el-button>
+                    <el-button type="primary" @click="submitSwitchState">确 定</el-button>
+                </div>
+            </el-dialog>
+        </el-main>
+        <!--分页-->
+        <el-footer>
+            <el-pagination
+                    :current-page="this.page"
+                    :page-size="20"
+                    :pager-count="11"
+                    layout="prev, pager, next"
+                    :total="this.totalPage"
+                    :background="true"
+                    @current-change="pageChange">
+            </el-pagination>
+        </el-footer>
+
+    </el-container>
+</div>
+
+
+<!--  导入vue.js  -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<!--  导入elementUi  -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<!--  导入axios  -->
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<!--通用-->
+<script src="../../js/common.js"></script>
+<!--axios配置-->
+<script src="../../js/request.js"></script>
+<script>
+    new Vue({
+        el: '.app',
+        data() {
+            /*校验账号是否有重复*/
+            var checkName = (rule, value, callback) => {
+                console.log(value);
+                submitData('get', '/member/check?name=' + value).then(res => {
+                    const r = res.data;
+                    if(r.code === 0) {
+                        //console.log('账号已存在');
+                        callback(new Error('账号已存在'));
+                    } else {
+                        //console.log('账号不存在'+ r.code );
+                        callback();
+                    }
+                })
+            }
+            /*校验联系电话格式*/
+            var checkPhone = (rule, value, callback) => {
+                const check = /^1(3|4|5|6|7|8)\d{9}$/;
+                if(value === '') {
+                    callback(new Error('请填写联系电话'));
+                } else if(!check.test(value)) {
+                    callback(new Error('电话格式错误'));
+                } else {
+                    callback();
+                }
+            }
+            /*校验email格式*/
+            var checkEmail = (rule, value, callback) => {
+                const check = /^(\w)+(\.\w+)*@(\w)+((\.\w+)+)$/;
+                if(value === '') {
+                    callback(new Error('请填写Email'));
+                } else if(!check.test(value)) {
+                    callback(new Error('Email格式错误'));
+                } else {
+                    callback();
+                }
+            }
+            return {
+                page: 1,
+                input: '',
+                state: '',
+                totalPage: 100,
+                addForm: false,
+                updateForm: false,
+                switchForm: false,
+                inputWidth: '25%',
+                addData: {
+                    name: '',
+                    userName: '',
+                    phone: '',
+                    email: ''
+                },
+                updateData: {
+                    id: '',
+                    name: '',
+                    userName: '',
+                    phone: '',
+                    email: ''
+                },
+                switchData: {
+                    id: '',
+                    name: '',
+                    state: ''
+                },
+                /*表单校验规则*/
+                rules: {
+                    name: [
+                        {required: true, message: '请填写账号', trigger: 'blur'},
+                        {min: 6, message: '账号至少为6位', trigger: 'blur'},
+                        {max: 20, message: '账号最多为20位', trigger: 'blur'},
+                    ],
+                    userName: [{required: true, min: 2, message: '姓名至少为2个字', trigger: 'blur'}],
+                    phone: [{required: true, validator: checkPhone, trigger: 'blur'}],
+                    email: [{required: true, validator: checkEmail, trigger: 'blur'}]
+                },
+                rules2: {
+                    name: [
+                        {required: true, message: '请填写账号', trigger: 'blur'},
+                        {min: 6, message: '账号至少为6位', trigger: 'blur'},
+                        {max: 20, message: '账号最多为20位', trigger: 'blur'},
+                        {validator: checkName, trigger: 'blur'}
+                    ],
+                    userName: [{required: true, min: 2, message: '姓名至少为2个字', trigger: 'blur'}],
+                    phone: [{required: true, validator: checkPhone, trigger: 'blur'}],
+                    email: [{required: true, validator: checkEmail, trigger: 'blur'}]
+                },
+                /*表单数据*/
+                tableData: [],
+                /*tableData: [{
+                    id: '1',
+                    name: '111111',
+                    userName: 'AAA',
+                    phone: '13212345678',
+                    email: '123@gmail.com',
+                    state: '1'
+                },{
+                    id: '1',
+                    name: '111111',
+                    userName: 'AAA',
+                    phone: '13212345678',
+                    email: '123@gmail.com',
+                    state: '1'
+                },{
+                    id: '2',
+                    name: '222222',
+                    userName: 'BBB',
+                    phone: '13212345678',
+                    email: '123@gmail.com',
+                    state: '0'
+                },{
+                    id: '3',
+                    name: '333333',
+                    userName: 'CCC',
+                    phone: '13212345678',
+                    email: '123@gmail.com',
+                    state: '1'
+                },{
+                    id: '4',
+                    name: '444444',
+                    userName: 'DDD',
+                    phone: '13212345678',
+                    email: '123@gmail.com',
+                    state: '1'
+                }]*/
+            }
+        },
+        /*页面加载完成，调用方法查询数据*/
+        created() {
+            this.getUser();
+        },
+        methods: {
+            /*根据分页信息查询数据*/
+            getUser() {
+                const params = {
+                    page: this.page,
+                    name: this.input ? this.input : undefined
+                }
+                /*console.log(params.name)*/
+                const url = params.name !== undefined ? '/member/page?page=' + params.page + '&name=' + params.name : 'member/page?page=' + params.page;
+                /*console.log(url)*/
+                /*调用axios发送请求*/
+                submitData('get', url).then(res => {
+                    const r = res.data;
+                    //console.log(r.code);
+                    if(String(r.code) === '1') {
+                        //console.log('更改数据');
+                        this.tableData = r.data.records;
+                        this.totalPage = parseInt(r.data.total);
+                    }
+                }).catch(err => {
+                    this.$message.error('请求出错了：' + err)
+                })
+            },
+            submitAddUser() {
+                this.$refs.addForm.validate((valid) => {
+                    if(valid) {
+                        //console.log('添加员工');
+                        const url = '/member';
+                        const data = this.addData;
+                        submitData('post', url, data).then(res => {
+                            const r = res.data;
+                            //console.log(r.code);
+                            this.$message.success('添加成功');
+                            this.getUser();
+                        }).catch(err => {
+                            this.$message.error('请求出错了：' + err)
+                        })
+                        this.addForm = false;
+                    } else {
+                        //console.log('表单数据验证未通过');
+                    }
+                })
+            },
+            updateUser(row) {
+                // console.log('编辑员工：' + row.id);
+                this.updateData.id = row.id;
+                this.updateData.name = row.name;
+                this.updateData.userName = row.userName;
+                this.updateData.phone = row.phone;
+                this.updateData.email = row.email;
+                this.updateForm = true;
+            },
+            submitUpdateUser() {
+                this.$refs.updateForm.validate((valid) => {
+                    if(valid) {
+                        const url = '/member';
+                        const data = this.updateData;
+                        submitData('put', url, data).then(res => {
+                            const r = res.data;
+                            // console.log(r.code);
+                            this.$message.success('修改成功');
+                            this.getUser();
+                        }).catch(err => {
+                            this.$message.error('请求出错了：' + err)
+                        })
+                        this.updateForm = false;
+                    } else {
+                        //console.log('表单数据验证未通过');
+                    }
+                })
+            },
+            switchState(row) {
+                //console.log((row.state == '1' ? '停用员工' : '启用员工') + row.name);
+                this.switchData.id = row.id;
+                this.switchData.name = row.name;
+                this.switchData.state = row.state;
+                this.state = row.state == '1' ? '停用员工账号' : '启用员工账号';
+                this.switchForm = true;
+            },
+            submitSwitchState() {
+                const url = '/member';
+                const data = this.switchData;
+                data.state = data.state == '1' ? '0' : '1';
+                submitData('patch', url, data).then(res => {
+                    const r = res.data
+                    //console.log(r.code);
+                    this.$message.success('更改成功');
+                    this.getUser();
+                }).catch(err => {
+                    this.$message.error('请求出错了：' + err)
+                })
+                this.switchForm = false;
+            },
+            /*
+			* 清空添加员工表单
+			* */
+            openAdd() {z
+                this.$nextTick(function () {
+                    this.$refs.addForm.resetFields();
+                })
+            },
+            /*
+			* 清空更新员工表单
+			* */
+            openUpdate() {
+                this.$nextTick(function () {
+                    this.$refs.updateForm.clearValidate();
+                })
+            },
+            pageChange(val) {
+                //console.log('val=' + val + 'page:' + this.page + 'totalPage:' + this.totalPage);
+                this.page = val;
+                this.getUser();
+            }
+        }
+    })
+</script>
+</body>
+</html>

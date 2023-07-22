@@ -1,0 +1,41 @@
+div.main {
+  height: 100%;
+}
+
+.el-menu {
+  height: 97%;
+  background-color: #373b44;
+}
+
+.el-menu-item {
+  color: #f9f9f9;
+  background-color: #373b44;
+}
+
+.el-menu-item:hover {
+  color: #373b44;
+  background-color: #C8C8C8;
+}
+
+.el-menu-item.is-active {
+  color: #373b44;
+  background-color: #f9f9f9;
+}
+
+.el-submenu__title {
+  color: #f9f9f9;
+  background-color: #373b44;
+}
+
+.el-submenu__title:hover {
+  color: #373b44;
+  background-color: #C8C8C8;
+}
+
+.el-aside {
+  background-color: #373b44;
+}
+
+.el-dropdown {
+  color: #f9f9f9;
+}

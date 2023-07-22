@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en"  xmlns:th="https://www.thymeleaf.org/">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+</head>
+<body>
+<div class="app">
+    <el-date-picker
+            v-model="value1"
+            type="datetime"
+            placeholder="选择日期时间">
+    </el-date-picker>
+    <el-button @click="jumpPage">print out</el-button>
+    <el-button @click="printPath">Print Path</el-button>
+    <el-button @click="testGetAllPurchaser">Get All Purchaser</el-button>
+    <el-button @click="getRecordByMonth">Get Record By Month</el-button>
+</div>
+
+
+<!--  导入vue.js  -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<!--  导入elementUi  -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<!--  导入axios  -->
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<!--  通用js  -->
+<script src="../../js/common.js"></script>
+<!--  axios配置  -->
+<script src="../../js/request.js"></script>
+
+<script>
+    new Vue({
+
+        el: '.app',
+
+        data: {
+            value1: ''
+        },
+
+        created() {
+        },
+
+        methods: {
+
+            printOut() {
+                console.log(this.value1);
+            },
+
+            jumpPage() {
+                submitData('get', 'test');
+            },
+
+            printPath() {
+                submitData('get', 'test/getPath');
+            },
+
+            testGetAllPurchaser() {
+                submitData('get', 'purchase/purchaser/getAll')
+            },
+
+            getRecordByMonth() {
+                let params = {
+                    pageNum: 1,
+                    date: "2023-04-12"
+                };
+                submitGet('get', 'record/book/month', params);
+            }
+
+        }
+
+    })
+</script>
+
+</body>
+</html>

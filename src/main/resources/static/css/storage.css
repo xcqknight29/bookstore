@@ -1,0 +1,6 @@
+.el-input.is-disabled .el-input__inner {
+    background-color: #FFFFFF;
+    border-color: #FFFFFF;
+    color: #606266;
+    cursor: default;
+}

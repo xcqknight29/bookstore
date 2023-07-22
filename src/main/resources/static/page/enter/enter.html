@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>录入图书信息</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/enter.css">
+</head>
+<body>
+<div class="app" style="height: 100%;">
+    <el-container style="height: 100%;">
+        <el-header>
+            <!--搜索图书-->
+            <el-input v-model="input"
+                      placeholder="按图书信息查询"
+                      style="width: 250px"
+                      @keyup.enter.native="getBook">
+                <i slot="suffix"
+                   class="el-input__icon el-icon-search"
+                   style="cursor: pointer"
+                   @click="getBook"></i>
+            </el-input>
+            <!--添加图书按钮-->
+            <el-button class="addButton"
+                       size="medium"
+                       @click="addDialog = true"
+                       style="float: right;"
+                       type="primary"
+                       icon="el-icon-plus">
+                添加图书
+            </el-button>
+            <el-button class="classButton"
+                       size="medium"
+                       @click="classDialog = true"
+                       style="float: right; margin-right: 20px"
+                       icon="">
+                编辑分类
+            </el-button>
+            <!--添加图书对话框-->
+            <el-dialog class="add-dialog"
+                       @open="resetAdd('addForm')"
+                       title="添加图书"
+                       :visible.sync="addDialog"
+                       width="30%"
+                       :modal="false">
+                <!--表单-->
+                <el-form :model="addForm" :rules="rulesA" ref="addForm" :hide-required-asterisk="true">
+                    <el-form-item label="书名" :label-width='inputWidth' prop="bookName">
+                        <el-input v-model="addForm.bookName" placeholder="请输入书名"></el-input>
+                    </el-form-item>
+                    <el-form-item label="分类" :label-width='inputWidth' prop="bookClass">
+                        <el-select v-model="addForm.bookClass" placeholder="请选择">
+                            <el-option v-for="item in classList"
+                                       :key="item.classCode"
+                                       :label="item.className"
+                                       :value="item.classCode">
+                            </el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="建议售价" :label-width='inputWidth' prop="price">
+                        <el-input v-model="addForm.price" placeholder="请设定售价"><span slot="suffix">￥</span></el-input>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="addDialog = false">取 消</el-button>
+                    <el-button type="primary" @click="submitAdd">确 定</el-button>
+                </div>
+            </el-dialog>
+            <!--编辑分类-->
+            <el-dialog class="class-dialog"
+                       @open="resetClass"
+                       title="编辑分类"
+                       :visible.sync="classDialog"
+                       width="30%"
+                       :modal="false"
+                       ref="classDialog">
+                <!--用tag显示-->
+                <div
+                        style="border-style: solid;
+                border-color: #c0c4cc;
+                border-width: 1px;
+                border-radius: 2px;
+                height: 200px;
+                padding: 10px;
+                overflow: auto;">
+                    <template v-for="item in classList">
+                        <el-tag style="margin:3px" @click="updateClass(item)" :type="item.classCode === classForm.classCode ? 'warning' : ''">{{item.className}}</el-tag>
+                    </template>
+                </div>
+
+                <div slot="footer" class="dialog-footer">
+                    <el-form :model="classForm" :rules="rulesC" ref="classForm">
+                        <el-form-item prop="className">
+                            <el-input v-model="classForm.className"></el-input>
+                        </el-form-item>
+                    </el-form>
+                    <el-button @click="resetClass">清空</el-button>
+                    <el-button @click="classDialog = false">取消</el-button>
+                    <el-button type="primary" @click="submitClass">{{classForm.classCode ? '修改分类' : '新增分类'}}</el-button>
+                </div>
+            </el-dialog>
+        </el-header>
+        <el-main>
+            <!--
+			表格(数据库用)
+			Book图书：
+			!Id：主键；
+			Book_name：书名；
+			Book_class：书籍分类；
+			!Book_amount：书籍库存数量；
+			Price：建议售价；
+			!Create_time：创建时间；
+			!Update_time：更新时间；
+			-->
+            <el-table :data="tableData"
+                      stripe
+                      height="100%">
+                <el-table-column prop="bookName" label="书名"></el-table-column>
+                <el-table-column prop="className" label="分类">
+                    <template slot-scope="scope">
+                        <span v-if="setClass(scope.row.bookClass)">未分类</span>
+                        <span v-else>{{ setClass(scope.row.bookClass).className }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="price" label="建议售价(￥)"></el-table-column>
+                <el-table-column prop="action" label="操作">
+                    <template slot-scope="scope">
+                        <el-button size="mini"
+                                   type="warning"
+                                   @click="openUpdateDialog(scope.row)">
+                            编 辑
+                        </el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <el-dialog class="update-dialog"
+                       @open="resetUpdate('updateForm')"
+                       title="编辑图书"
+                       :visible.sync="updateDialog"
+                       width="30%"
+                       :modal="false"
+                       ref="updateDialog">
+                <!--编辑图书表单-->
+                <el-form :model="updateForm" :rules="rulesB" ref="updateForm" :hide-required-asterisk="true">
+                    <el-form-item label="书名" :label-width='inputWidth' prop="bookName">
+                        <el-input v-model="updateForm.bookName" placeholder="请输入书名"></el-input>
+                    </el-form-item>
+                    <el-form-item label="分类" :label-width='inputWidth' prop="bookClass">
+                        <el-select v-model="updateForm.bookClass" placeholder="请选择">
+                            <el-option v-for="item in classList"
+                                       :key="item.classCode"
+                                       :label="item.className"
+                                       :value="item.classCode">
+                            </el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="建议售价" :label-width='inputWidth' prop="price">
+                        <el-input v-model="updateForm.price" placeholder="请设定售价"><span slot="suffix">￥</span></el-input>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="updateDialog = false">取 消</el-button>
+                    <el-button type="primary" @click="submitUpdate">确 定</el-button>
+                </div>
+            </el-dialog>
+        </el-main>
+        <el-footer>
+            <el-pagination
+                    :current-page="this.page"
+                    :page-size="20"
+                    :pager-count="11"
+                    layout="prev, pager, next"
+                    :total="this.total"
+                    :background="true"
+                    @current-change="pageChange">
+            </el-pagination>
+        </el-footer>
+    </el-container>
+</div>
+<!--  导入vue.js  -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<!--  导入elementUi  -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<!--  导入axios  -->
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<!--通用js-->
+<script src="../../js/common.js"></script>
+<!--axios配置-->
+<script src="../../js/request.js"></script>
+<script>
+    new Vue({
+        el: '.app',
+        data() {
+            /*验证书名是否重复*/
+            var checkName = (rule, value, callback) => {
+                if(value === '') {
+                    callback(new Error('请输入书名'));
+                } else {
+                    submitData('get', 'book/check?name=' + value).then(res => {
+                        const r = res.data;
+                        if (r.code === 0) {
+                            //console.log('该书已存在');
+                            callback(new Error('该书已存在:' + value));
+                        } else {
+                            //console.log('该书不存在'+ r.code );
+                            callback();
+                        }
+                    })
+                }
+            };
+            var checkClassName = (rule, value, callback) => {
+                if(value === '') {
+                    callback(new Error('请输入类型'));
+                } else if(!this.classForm.classCode) {
+                    submitData('get', 'book/class/check?name=' + value).then(res => {
+                        const r = res.data;
+                        if (r.code === 0) {
+                            //console.log('该书已存在');
+                            callback(new Error('该分类已存在:' + value));
+                        } else {
+                            //console.log('该书不存在'+ r.code );
+                            callback();
+                        }
+                    })
+                } else {
+                    callback();
+                }
+            };
+            return {
+                page: 1,
+                input: '',
+                total: 100,
+                addDialog: false,
+                updateDialog: false,
+                classDialog: false,
+                inputWidth: '25%',
+
+                addForm: {
+                    bookName: '',
+                    bookClass: '',
+                    price: '',
+                    userId: ''
+                },
+
+                updateForm: {
+                    id: '',
+                    bookName: '',
+                    bookClass: '',
+                    price: '',
+                },
+
+                classForm: {
+                    classCode: 0,
+                    className: '',
+                },
+
+                rulesA: {
+                    bookName: [{validator: checkName, trigger: 'blur'}],
+                    bookClass: [{required: true, message: '请选择分类', trigger: 'change'}],
+                    price: [{required: true, message: '请输入售价', trigger: 'blur'}],
+                },
+
+                rulesB: {
+                    bookName: [{required: true, message: '请输入书名', trigger: 'blur'}],
+                    bookClass: [{required: true, message: '请选择分类', trigger: 'change'}],
+                    price: [{required: true, message: '请输入售价', trigger: 'blur'}],
+                },
+
+                rulesC: {
+                    className: [{validator: checkClassName, trigger: 'change'}]
+                },
+                tableData: [],
+                /*tableData: [{
+                    id: '1',
+                    bookName: '冰与火之歌1',
+                    bookClass: 1,
+                    className: '',
+                    price: 32.9,
+                },{
+                    id: '2',
+                    bookName: '冰与火之歌2',
+                    bookClass: 2,
+                    className: '',
+                    price: 32.9
+                }],*/
+
+                /*
+				* 图书类型：
+				* class_code：类型编号
+				* class_name：类型名称
+				* */
+                classList: [],
+                /*classList: [{
+                    classCode: 1,
+                    className: '文学',
+                },{
+                    classCode: 2,
+                    className: '历史',
+                },{
+                    classCode: 3,
+                    className: '社科',
+                },{
+                    classCode: 4,
+                    className: '军事',
+                },{
+                    classCode: 5,
+                    className: '经济',
+                },{
+                    classCode: 6,
+                    className: '医学',
+                },{
+                    classCode: 7,
+                    className: '工业技术',
+                },{
+                    classCode: 8,
+                    className: '信息技术',
+                }]*/
+            };
+        },
+
+        created() {
+            this.getBook();
+            this.getClass();
+            this.addForm.userId = localStorage.getItem('userId')
+        },
+
+        methods: {
+
+            pageChange(val) {
+                this.page = val;
+                this.getBook();
+            },
+
+            getBook() {
+                const params = {
+                    page: this.page,
+                    name: this.input ? this.input : undefined
+                }
+                /*console.log(params.name)*/
+                const url1 = params.name !== undefined ? 'book/page?page=' + params.page + '&name=' + params.name : 'book/page?page=' + params.page;
+                /*console.log(url)*/
+                /*调用axios发送请求*/
+                submitData('get', url1).then(res => {
+                    const r = res.data;
+                    //console.log(r.code);
+                    if (String(r.code) === '1') {
+                        //console.log('更改数据');
+                        this.tableData = r.data.records;
+                        this.total = parseInt(r.data.total);
+                    }
+                }).catch(err => {
+                    this.$message.error('请求出错了：' + err)
+                })
+            },
+
+            getClass() {
+                const url2 = 'book/class'
+                submitData('get', url2).then(res => {
+                    const r = res.data;
+                    //console.log(r.code);
+                    if (String(r.code) === '1') {
+                        //console.log('更改数据');
+                        this.classList = r.data;
+                    }
+                }).catch(err => {
+                    this.$message.error('请求出错了：' + err)
+                })
+            },
+
+            setClass(code) {
+                return this.classList.find((item) => {
+                    return item.classCode === code;
+                });
+            },
+
+            openUpdateDialog(row) {
+                this.updateForm.id = row.id;
+                this.updateForm.bookName = row.bookName;
+                this.updateForm.bookClass = row.bookClass;
+                this.updateForm.price = row.price;
+                this.updateDialog = true;
+            },
+
+            submitAdd() {
+                this.$refs.addForm.validate((valid) => {
+                    if(valid) {
+                        //console.log('添加图书');
+                        this.addForm.userId = localStorage.getItem('userId');
+                        const url = 'book';
+                        const data = this.addForm;
+                        data.price = Number(this.addForm.price);
+                        submitData('post', url, data).then(res => {
+                            const r = res.data;
+                            //console.log(r.code);
+                            this.$message.success('添加成功');
+                            this.getBook();
+                        }).catch(err => {
+                            this.$message.error('请求出错了：' + err)
+                        })
+                        this.addDialog = false;
+                    } else {
+                        console.log('表单数据验证未通过');
+                    }
+                })
+            },
+
+            submitUpdate() {
+                this.$refs.updateForm.validate((valid) => {
+                    if(valid) {
+                        //console.log('修改图书');
+                        const url = 'book';
+                        const data = this.updateForm;
+                        data.price = Number(this.updateForm.price);
+                        submitData('put', url, data).then(res => {
+                            const r = res.data;
+                            //console.log(r.code);
+                            this.$message.success('修改成功');
+                            this.getBook();
+                        }).catch(err => {
+                            this.$message.error('请求出错了：' + err)
+                        })
+                        this.updateDialog = false;
+                    } else {
+                        console.log('表单数据验证未通过');
+                    }
+                })
+            },
+
+            updateClass(item) {
+                //console.log(item);
+                if(item !== undefined) {
+                    this.classForm.classCode = item.classCode;
+                    this.classForm.className = item.className;
+                    // console.log(typeof this.classForm.classCode + this.classForm.className);
+                }
+            },
+
+            cancelClass() {
+                this.classForm.classCode = 0;
+                this.classForm.className = '';
+                // console.log(typeof this.classForm.classCode + this.classForm.className);
+            },
+
+            submitClass() {
+                /*if(this.classForm.classCode === 0) {
+				  this.$refs.classForm.validate((valid) => {
+					if(valid) {
+					  const url = 'book/class';
+					  const data = this.classForm;
+					  data.classCode = undefined;
+					  submitData('post', url, date).then(res => {
+						const r = res.date;
+						this.$message.success('新增分类成功');
+						this.getClass();
+					  }).catch(err => {
+						this.$message.error('请求出错了：' + err)
+					  })
+					} else {
+					  console.log('表单数据验证未通过');
+					}
+				  })
+				} else {
+				  const url = 'book/class';
+				  const data = this.classForm;
+				  submitData('put', url, date).then(res => {
+					const r = res.date;
+					this.$message.success('修改分类成功');
+					this.getClass();
+				  }).catch(err => {
+					this.$message.error('请求出错了：' + err)
+				  })
+				}*/
+                this.$refs.classForm.validate((valid) => {
+                    if(valid) {
+                        const url = 'book/class';
+                        const data = this.classForm;
+                        submitData('post', url, data).then(res => {
+                            this.getClass();
+                            this.resetClass();
+                        }).catch(err => {
+                            this.$message.error('请求出错了：' + err);
+                        })
+                    }
+                })
+            },
+
+            resetAdd(formName) {
+                //console.log(':' + formName);
+                this.$nextTick(function () {
+                    this.$refs[formName].resetFields();
+                })
+                //this.$refs[formName].resetFields();
+                //console.log(form);
+            },
+
+            resetUpdate(formName) {
+                this.$nextTick(function () {
+                    this.$refs[formName].clearValidate();
+                })
+            },
+
+            resetClass() {
+                this.cancelClass();
+                this.resetUpdate('classForm');
+            },
+
+            //openUpdate() {},
+
+            //openClass() {},
+
+        }
+    })
+</script>
+</body>
+</html>

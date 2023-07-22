@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>账户-修改密码</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/editAccount.css">
+</head>
+<body>
+
+<div class="edit-page">
+    <div class="edit-app">
+        <el-image class="image account_icon" src="../../images/login_icon.png"></el-image>
+        <p class="account_text">修改密码</p>
+        <el-form :model="accountForm" :rules="myRules" ref="accountForm" label-width="70px" hide-required-asterisk>
+            <el-form-item label="账号" prop="name">
+                <el-input v-model="accountForm.name" disabled></el-input>
+            </el-form-item>
+            <el-form-item label="新密码" prop="password">
+                <el-input type="password" v-model="accountForm.password"></el-input>
+            </el-form-item>
+            <el-form-item label="确认密码" prop="checkPassword">
+                <el-input type="password" v-model="accountForm.checkPassword"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="warning" size="small" @click="handleUpdate">确认修改</el-button>
+                <el-button size="small" @click="cancelBack">返  回</el-button>
+            </el-form-item>
+        </el-form>
+    </div>
+</div>
+
+<!--  导入vue.js  -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<!--  导入elementUi  -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<!--  导入axios  -->
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<!--通用js-->
+<script src="../../js/common.js"></script>
+<!--axios配置-->
+<script src="../../js/request.js"></script>
+
+<script>
+    new Vue({
+        el: '.edit-page',
+        data() {
+            var checkPassword = (rule, value, callback) => {
+                //console.log('value:' + value + 'this.accountForm.password' + this.accountForm.password);
+                if(this.accountForm.password === '') {
+                    callback(new Error('密码不能为空'));
+                } else if (this.accountForm.password.length < 6) {
+                    callback(new Error('密码不能短于6位'));
+                } else if (this.accountForm.password.length > 20) {
+                    callback(new Error('密码不能长于20位'));
+                } else {
+                    callback();
+                }
+            };
+            var checkPasswordSame  = (rule, value, callback) => {
+                /*console.log(value);
+                console.log('Check Password:' + this.accountForm.checkPassword);*/
+                if(this.accountForm.checkPassword === '') {
+                    callback(new Error('密码不能为空'));
+                } else if (this.accountForm.checkPassword.length < 6) {
+                    callback(new Error('密码不能短于6位'));
+                } else if (this.accountForm.checkPassword.length > 20) {
+                    callback(new Error('密码不能长于20位'));
+                } else if(this.accountForm.checkPassword !== this.accountForm.password) {
+                    callback(new Error('两次输入的密码要相同'));
+                } else {
+                    callback();
+                }
+            };
+            return {
+                accountForm: {
+                    name: '',
+                    password: '111111',
+                    checkPassword: '111111'
+                },
+                myRules: {
+                    password: [
+                        {validator: checkPassword, trigger: 'blur'}
+                    ],
+                    checkPassword: [
+                        {validator: checkPasswordSame, trigger: 'blur'}
+                    ]
+                }
+            }
+        },
+        created() {
+            this.accountForm.name = localStorage.getItem('name');
+        },
+        methods:{
+            cancelBack() {
+                window.location.href = '/page/main.html';
+            },
+            handleUpdate() {
+                this.$refs.accountForm.validate((valid) => {
+                    console.log(valid);
+                    if(valid) {
+                        const url = '/member/password';
+                        const data = this.accountForm;
+                        submitData('put', url, data).then(res => {
+                            const r = res.data;
+                            // console.log(r.code);
+                            this.$message.success('修改成功');
+                            window.location.href = '/page/main.html';
+                        }).catch(err => {
+                            this.$message.error('请求出错了：' + err)
+                        })
+                    } else {
+                        console.log('表单数据验证未通过');
+                    }
+                })
+            }
+        }
+    })
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+html {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  height: 100%;
+}
+
+div.app {
+  height: 100%;
+}
+
+.el-container {
+  height: 100%;
+}
+
+.el-pagination {
+  text-align: center;
+}
+
+.el-button--primary {
+  background: #005BBC;
+  border-color: #f9f9f9;
+  color: #f9f9f9;
+}
+
+.el-button--primary:focus, .el-button--primary:hover {
+  background: #3C73C7;
+  border-color: #3C73C7;
+  color: #f9f9f9;
+}
+
+.el-button--warning {
+  background: #FFD600;
+  border-color: #f9f9f9;
+  color: #606266;
+}
+
+.el-button--warning:focus, .el-button--warning:hover {
+  background: #FFE34D;
+  border-color: #FFE34D;
+  color: #606266;
+}
+
+.el-button--danger {
+  background-color: #F24949;
+  border-color: #f9f9f9;
+}
+
+.el-button--danger:focus, .el-button--danger:hover {
+  background-color: #F56C6C;
+  border-color: #F56C6C;
+}
+
+.el-button--success {
+  background-color: #49B215;
+  border-color: #f9f9f9;
+}
+
+.el-button--success:focus, .el-button--success:hover {
+  background-color: #67C23A;
+  border-color: #67C23A;
+}

@@ -1,0 +1,7 @@
+section.maxHeight {
+    height: 100%;
+}
+
+.stateDialog .el-dialog__body {
+    height: 32px;
+}

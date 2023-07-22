@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Purchaser</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/purchaser.css">
+</head>
+<body>
+<div class="app">
+    <el-container class="maxHeight">
+        <el-header>
+            <!--搜索供货商-->
+            <el-input v-model="input"
+                      placeholder="按供货商信息查询"
+                      style="width: 250px"
+                      @keyup.enter.native="getPurchaser">
+                <i slot="suffix"
+                   class="el-input__icon el-icon-search"
+                   style="cursor: pointer"
+                   @click="getPurchaser"></i>
+            </el-input>
+            <!--添加供货商按钮-->
+            <el-button class="addButton"
+                       size="medium"
+                       @click="addDialog = true"
+                       style="float: right;"
+                       type="primary"
+                       icon="el-icon-plus">
+                添加供货商
+            </el-button>
+            <!--添加供货商对话框-->
+            <el-dialog class="add-dialog"
+                       @open="openDialog('addDialog')"
+                       title="添加供货商"
+                       :visible.sync="addDialog"
+                       width="500px"
+                       :modal="false">
+                <!--添加供货商表单-->
+                <el-form :model="addForm" :rules="rules" ref="addForm">
+                    <el-form-item label="供货商名称" :label-width='inputWidth' prop="traderName">
+                        <el-input v-model="addForm.traderName" placeholder="请输入供货商名称"></el-input>
+                    </el-form-item>
+                    <el-form-item label="供货商地址" :label-width='inputWidth' prop="address">
+                        <el-input v-model="addForm.address" placeholder="请输入地址"></el-input>
+                    </el-form-item>
+                    <el-form-item label="联系电话" :label-width='inputWidth' prop="phone">
+                        <el-input v-model="addForm.phone" placeholder="请输入联系电话"></el-input>
+                    </el-form-item>
+                    <el-form-item label="联系人" :label-width='inputWidth' prop="contactPerson">
+                        <el-input v-model="addForm.contactPerson" placeholder="请输入联系人"></el-input>
+                    </el-form-item>
+                    <el-form-item label="Email" :label-width='inputWidth' prop="email">
+                        <el-input v-model="addForm.email" placeholder="请输入Email"></el-input>
+                    </el-form-item>
+                    <el-form-item label="供货商主页" :label-width='inputWidth' prop="homePage">
+                        <el-input v-model="addForm.homePage" placeholder="请输入主页"></el-input>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="addDialog = false">取 消</el-button>
+                    <el-button type="primary" @click="addSubmit">确 定</el-button>
+                </div>
+            </el-dialog>
+        </el-header>
+        <el-main>
+            <el-table :data="tableData"
+                      stripe>
+                <el-table-column prop="traderName" label="供货商名称"></el-table-column>
+                <el-table-column prop="address" label="地址">
+                    <template slot-scope="scope">
+                        {{ scope.row.address ? scope.row.address : '未填写' }}
+                    </template>
+                </el-table-column>
+                <el-table-column prop="phone" label="联系电话"></el-table-column>
+                <el-table-column prop="contactPerson" label="联系人">
+                    <template slot-scope="scope">
+                        {{ scope.row.contactPerson ? scope.row.contactPerson : '未填写' }}
+                    </template>
+                </el-table-column>
+                <el-table-column prop="email" label="Email">
+                    <template slot-scope="scope">
+                        {{ scope.row.email ? scope.row.email : '未填写' }}
+                    </template>
+                </el-table-column>
+                <el-table-column prop="homePage" label="供货商主页">
+                    <template slot-scope="scope">
+                        <el-link v-if="scope.row.homePage" type="primary" @click="toOtherPage(scope.row.homePage)">前往</el-link>
+                        <span v-else>未设定</span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="action" label="操作">
+                    <templata slot-scope="scope">
+                        <el-button size="small" 
+                        @click="openUpdateDialog(scope.row)" 
+                        type="warning">编辑</el-button>
+                    </templata>
+                </el-table-column>
+            </el-table>
+            <el-dialog class="update-dialog"
+                       @open="openDialog('updateDialog')"
+                       title="编辑图书"
+                       :visible.sync="updateDialog"
+                       width="500px"
+                       :modal="false"
+                       ref="updateDialog">
+                <!--编辑供货商-->
+                <el-form :model="updateForm" :rules="rules" ref="updateForm">
+                    <el-form-item label="供货商名称" :label-width='inputWidth' prop="traderName">
+                        <el-input v-model="updateForm.traderName" placeholder="请输入供货商名称"></el-input>
+                    </el-form-item>
+                    <el-form-item label="供货商地址" :label-width='inputWidth' prop="address">
+                        <el-input v-model="updateForm.address" placeholder="请输入地址"></el-input>
+                    </el-form-item>
+                    <el-form-item label="联系电话" :label-width='inputWidth' prop="phone">
+                        <el-input v-model="updateForm.phone" placeholder="请输入联系电话"></el-input>
+                    </el-form-item>
+                    <el-form-item label="联系人" :label-width='inputWidth' prop="contactPerson">
+                        <el-input v-model="updateForm.contactPerson" placeholder="请输入联系人"></el-input>
+                    </el-form-item>
+                    <el-form-item label="Email" :label-width='inputWidth' prop="email">
+                        <el-input v-model="updateForm.email" placeholder="请输入Email"></el-input>
+                    </el-form-item>
+                    <el-form-item label="供货商主页" :label-width='inputWidth' prop="homePage">
+                        <el-input v-model="updateForm.homePage" placeholder="请输入主页"></el-input>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="updateDialog = false">取 消</el-button>
+                    <el-button type="primary" @click="updateSubmit">确 定</el-button>
+                </div>
+            </el-dialog>
+        </el-main>
+        <el-footer>
+            <el-pagination
+                    :current-page="this.page"
+                    :page-size="20"
+                    :pager-count="11"
+                    layout="prev, pager, next"
+                    :total="this.total"
+                    :background="true"
+                    @current-change="pageChange">
+            </el-pagination>
+        </el-footer>
+    </el-container>
+</div>
+
+<!--  导入vue.js  -->
+<script src="../../vue/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<!--  导入elementUi  -->
+<script src="../../element-ui/lib/index.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<!--  导入axios  -->
+<script src="../../axios/axios.min.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<!--通用js-->
+<script src="../../js/common.js"></script>
+<!--axios配置-->
+<script src="../../js/request.js"></script>
+
+<script>
+    new Vue({
+
+        el: '.app',
+
+        data() {
+
+            // 验证手机号格式
+            var checkPhone = (rule, value, callback) => {
+                const check = /^1([345678])\d{9}$/;
+                if(!check.test(value)) {
+                    callback(new Error('电话格式错误'));
+                } else {
+                    callback();
+                }
+            }
+
+            // 验证邮箱格式
+            var checkEmail = (rule, value, callback) => {
+                const check = /^(\w)+(\.\w+)*@(\w)+((\.\w+)+)$/;
+                if(!check.test(value) && value) {
+                    callback(new Error('Email格式错误'));
+                } else {
+                    callback();
+                }
+            }
+
+            return {
+                page: 1,
+                total: 100,
+                input: '',
+                addDialog: false,
+                updateDialog: false,
+                classDialog: false,
+                inputWidth: '25%',
+                tableData: [{
+                    id: '123',
+                    traderName: 'abc',
+                    address: 'shenzhen',
+                    phone: '13212345678',
+                    contactPerson: 'leeing',
+                    email: '123@gmail.com',
+                    homePage: 'https://www.baidu.com/',
+                    userId: '1',
+                    updateTime: '2023-04-20 14:26:51',
+                    createTime: '2023-04-20 14:26:51'
+                },{
+                    id: '123',
+                    traderName: 'abc',
+                    address: 'shenzhen',
+                    phone: '13212345678',
+                    contactPerson: 'leeing',
+                    email: '123@gmail.com',
+                    homePage: '',
+                    userId: '1',
+                    updateTime: '2023-04-20 14:26:51',
+                    createTime: '2023-04-20 14:26:51'
+                }],
+                rules: {
+                    traderName: {required: true, message: '请填写供货商名称', trigger: 'blur'},
+                    phone: [{required: true, message: '请填写联系电话', trigger: 'blur'},
+                        {validator: checkPhone, trigger: 'blur'}],
+                    email: {validator: checkEmail, trigger: 'blur'}
+                },
+                addForm: {
+                    traderName: 'abc',
+                    address: '',
+                    phone: '13212345678',
+                    contactPerson: '',
+                    email: '',
+                    homePage: '',
+                    userId: ''
+                },
+                updateForm: {
+                    id: '',
+                    traderName: '',
+                    address: '',
+                    phone: '',
+                    contactPerson: '',
+                    email: '',
+                    homePage: '',
+                    userId: ''
+                }
+            }
+        },
+
+        created() {
+            this.getPurchaser();
+        },
+
+        methods: {
+
+            getPurchaser() {
+                const params = {
+                    pageNum: this.page,
+                    input: this.input ? this.input : undefined
+                }
+                //console.log(params.name)
+                const url = '/purchase/purchaser/page';
+                //console.log(url)
+                // 调用axios发送请求
+                submitGet('get', url, params).then(res => {
+                    //const r = res.data;
+                    //console.log(r.code);
+                    if(String(res.data.code) === '1') {
+                        console.log(res.data.data.total);
+                        this.tableData = res.data.data.records;
+                        this.total = parseInt(res.data.data.total);
+                    }
+                }).catch(err => {
+                    this.$message.error('请求出错了：' + err)
+                })
+            },
+
+            pageChange(val) {
+                this.page = val;
+                this.getPurchaser();
+            },
+
+            toOtherPage(url) {
+                window.open(url);
+            },
+
+            addSubmit() {
+                this.$refs.addForm.validate((valid) => {
+                    if(valid) {
+                        this.addForm.userId = localStorage.getItem('userId');
+                        let data = this.addForm;
+                        // 去除数组空元素
+                        for (key in data) {
+                            if(!data[key]) {
+                                data[key] = undefined; 
+                            }
+                        }
+                        console.log(data);
+                        const url = '/purchase/purchaser/add';
+                        submitData('post', url, data).then(res => {
+                            if(res.data.code === 1) {
+                                this.$message.success('新增供货商成功');
+                                this.getPurchaser();
+                                this.addDialog = false;
+                            } else {
+                                this.$message.error('添加失败' + res.data.data);
+                            }
+                        }).catch(err => {
+                            this.$message.error('出错' + err);
+                        })
+                    }
+                })
+            },
+
+            openDialog(DialogName) {
+                console.log(DialogName);
+            },
+            // 更新表单:
+            // updateForm: {
+            //     id: '',
+            //     traderName: '',
+            //     address: '',
+            //     phone: '',
+            //     contactPerson: '',
+            //     email: '',
+            //     homePage: ''
+            // }
+            openUpdateDialog(row) {
+                this.updateForm.id = row.id;
+                this.updateForm.traderName = row.traderName;
+                this.updateForm.address = row.address;
+                this.updateForm.phone = row.phone;
+                this.updateForm.contactPerson = row.contactPerson;
+                this.updateForm.email = row.email;
+                this.updateForm.homePage = row.homePage;
+                this.updateDialog = true;
+            },
+
+            updateSubmit() {
+                this.$refs.updateForm.validate((valid) => {
+                    if(valid) {
+                        let data = this.updateForm;
+                        //去除数组空白元素
+                        for (key in data) {
+                            if(!data[key]) {
+                                data[key] = undefined; 
+                            }
+                        }
+                        console.log(data);
+                        const url = '/purchase/purchaser/update';
+                        submitData('post', url, data).then(res => {
+                            if(res.data.code === 1) {
+                                this.$message.success('修改供货商成功');
+                                this.getPurchaser();
+                                this.updateDialog = false;
+                            } else {
+                                this.$message.error('修改失败' + res.data.data);
+                            }
+                        }).catch(err => {
+                            this.$message.error('出错' + err);
+                        })
+                    }
+                })
+            },
+        }
+    })
+</script>
+</body>
+</html>

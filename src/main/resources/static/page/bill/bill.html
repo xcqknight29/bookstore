@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SellBillManage</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/bill.css">
+</head>
+<body>
+<div class="app" style="height: 100%;">
+    <el-container style="height: 100%;">
+
+        <el-header>
+
+            <!--订单-->
+            <el-input v-model="input"
+                      placeholder="按订单信息查询"
+                      style="width: 250px"
+                      @keyup.enter.native="getbill">
+                <i slot="suffix"
+                   class="el-input__icon el-icon-search"
+                   style="cursor: pointer"
+                   @click="getbill"></i>
+            </el-input>
+            <el-button class="addButton"
+                       size="medium"
+                       @click="addDialog = true"
+                       style="float: right;"
+                       type="primary"
+                       icon="el-icon-plus">添加订单</el-button>
+
+            <el-dialog @open="openDialog"
+                       title="新增订单"
+                       :visible.sync="addDialog"
+                       width="60%"
+                       :modal="false"
+                       ref="addDialog">
+                <el-form :model="addForm" :rules="rules" ref="addForm" :hide-required-asterisk="true" :inline="true">
+                    <el-form-item label="客户名称" :label-width='inputWidth' prop="clientName">
+                        <el-input v-model="addForm.clientName" placeholder="请输入客户名称"></el-input>
+                    </el-form-item>
+                    <el-form-item label="所购图书" :label-width='inputWidth' prop="bookName">
+                        <!--<el-autocomplete v-model="addForm.bookName"
+                                         :fetch-suggestions="querySearch"
+                                         placeholder="请输入书名"
+                                         :trigger-on-focus="true"
+                                         @change="changeBookName"></el-autocomplete>-->
+                        <el-select
+                                v-model="addForm.bookId"
+                                filterable
+                                placeholder="请选择图书">
+                            <el-option
+                                    v-for="item in bookList"
+                                    :key="item.id"
+                                    :label="item.bookName"
+                                    :value="item.id">
+                            </el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="联系电话" :label-width='inputWidth' prop="phone">
+                        <el-input v-model="addForm.phone" placeholder="请输入联系电话"></el-input>
+                    </el-form-item>
+                    <el-form-item label="购买数量" :label-width='inputWidth' prop="num">
+                        <el-input v-model="addForm.num"
+                                  placeholder="请输入购买数量"
+                                  @change="changeNum"></el-input>
+                    </el-form-item>
+                    <el-form-item label="地址" :label-width='inputWidth' prop="address">
+                        <el-input v-model="addForm.address" placeholder="请输入地址"></el-input>
+                    </el-form-item>
+                    <el-form-item label="总价" :label-width='inputWidth' prop="totalPrice">
+                        <el-input v-model="addForm.totalPrice" placeholder="请输入总价"></el-input>
+                    </el-form-item>
+                    <el-form-item label="电子邮件" :label-width='inputWidth' prop="email">
+                        <el-input v-model="addForm.email" placeholder="请输入电子邮件"></el-input>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer">
+                    <el-button @click="addDialog = false">取 消</el-button>
+                    <el-button type="primary" @click="addSubmit">确 定</el-button>
+                </div>
+            </el-dialog>
+
+        </el-header>
+
+        <el-main>
+            <!--
+			addForm:
+			billState: 0,
+			clientName: '',
+			phone: '',
+				address: '',
+				email: '',
+				bookName: '',
+				num: 0,
+				totalPrice: 0
+			-->
+            <el-table :data="this.tableData"
+                      stripe
+                      height="100%">
+                <el-table-column prop="id" label="订单号"></el-table-column>
+                <el-table-column label="订单状态">
+                    <template slot-scope="scope">
+                        <span v-if="scope.row.billState === 0">未下单</span>
+                        <span v-else-if="scope.row.billState === 1">待发货</span>
+                        <span v-else-if="scope.row.billState === 2">已发货</span>
+                        <span v-else-if="scope.row.billState === 3">完成</span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="clientName" label="客户名称"></el-table-column>
+                <el-table-column prop="totalPrice" label="总价"></el-table-column>
+                <el-table-column label="详细信息">
+                    <template slot-scope="scope">
+                        <el-popover placement="bottom"
+                                    trigger="click">
+                            <el-descriptions title="订单详情" direction="horizontal" :column="2">
+                                <el-descriptions-item label="订单号">{{scope.row.id}}</el-descriptions-item>
+                                <el-descriptions-item label="客户名称">{{scope.row.clientName}}</el-descriptions-item>
+                                <el-descriptions-item label="联系电话">{{scope.row.phone}}</el-descriptions-item>
+                                <el-descriptions-item label="地址">{{scope.row.address}}</el-descriptions-item>
+                                <el-descriptions-item label="电子邮箱">{{scope.row.email}}</el-descriptions-item>
+                                <el-descriptions-item label="书名">{{scope.row.bookName}}</el-descriptions-item>
+                                <el-descriptions-item label="订购数量">{{scope.row.num}}</el-descriptions-item>
+                                <el-descriptions-item label="总价">{{scope.row.totalPrice}}</el-descriptions-item>
+                            </el-descriptions>
+                            <el-steps :active="scope.row.billState" finish-status="success">
+                                <el-step title="下单"></el-step>
+                                <el-step title="发货"></el-step>
+                                <el-step title="完成"></el-step>
+                            </el-steps>
+                            <el-link slot="reference">查看</el-link>
+                        </el-popover>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作">
+                    <template slot-scope="scope">
+                        <el-button type="warning" size="small" @click="actionHandle(scope.row)">操 作</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <el-dialog
+                    class="actionDialog"
+                    :title="dialogTitle"
+                    :visible.sync="actionDialog"
+                    width="500px"
+                    :modal="false">
+                <div style="float: right;">
+                    <el-button
+                            size="mini"
+                            @click="actionDialog = false">
+                        取消
+                    </el-button>
+                    <el-button
+                            v-if="actionForm.billState !== 4"
+                            size="mini"
+                            type="primary"
+                            @click="actionSubmit">
+                        确认
+                    </el-button>
+                </div>
+            </el-dialog>
+        </el-main>
+
+        <el-footer>
+            <el-pagination
+                    :current-page="this.page"
+                    :page-size="20"
+                    :pager-count="11"
+                    layout="prev, pager, next"
+                    :total="this.total"
+                    :background="true"
+                    @current-change="pageChange">
+            </el-pagination>
+        </el-footer>
+
+    </el-container>
+
+</div>
+
+<!--  导入vue.js  -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<!--  导入elementUi  -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<!--  导入axios  -->
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<!--  通用js  -->
+<script src="../../js/common.js"></script>
+<!--  axios配置  -->
+<script src="../../js/request.js"></script>
+<script>
+    new Vue({
+
+        el: '.app',
+
+        data() {
+
+            var checkPhone = (rule, value, callback) => {
+                const check = /^1([345678])\d{9}$/;
+                if(value === '') {
+                    callback(new Error('请填写联系电话'));
+                } else if(!check.test(value)) {
+                    callback(new Error('电话格式错误'));
+                } else {
+                    callback();
+                }
+            };
+
+            var checkEmail = (rule, value, callback) => {
+                const check = /^(\w)+(\.\w+)*@(\w)+((\.\w+)+)$/;
+                if(value === '') {
+                    callback(new Error('请填写Email'));
+                } else if(!check.test(value)) {
+                    callback(new Error('Email格式错误'));
+                } else {
+                    callback();
+                }
+            };
+
+            var checkBookName = (rule, value, callback) => {
+                if(value === ''){
+                    callback(new Error('请输入书名'));
+                } else if(this.findBookName(value) === undefined) {
+                    callback(new Error('请选择'));
+                } else {
+                    callback();
+                }
+            };
+
+            var checkNum = (rule, value, callback) => {
+                if(value === ''){
+                    callback(new Error('请输入订购数量'));
+                } else if(value === '0') {
+                    callback(new Error('订购数量不能为0'));
+                } else {
+                    callback();
+                }
+            };
+
+            return {
+
+                page: 1,
+                total: 100,
+                inputWidth: '90px',
+                input: '',
+                addDialog: false,
+                actionDialog: false,
+                dialogTitle: '',
+
+                rules: {
+                    clientName: [{required: true, message: '请填写客户名称', trigger: 'blur'}],
+                    phone: [{validator: checkPhone, trigger: 'blur'}],
+                    address: [{required: true, message: '请填写地址', trigger: 'blur'},
+                        {min: 4, message: '请填写地址', trigger: 'blur'}],
+                    email: [{validator: checkEmail, trigger: 'blur'}],
+                    bookId: [{required: true, message: '请选择书名', trigger: 'blur'}],
+                    bookName: [{validator: checkBookName, trigger: 'change'}],
+                    num: [{validator: checkNum, trigger: 'blur'}],
+                    totalPrice: [{required: true, message: '请设定总价', trigger: 'change'}]
+                },
+
+                /*id: 1,
+				billState: 0,
+				clientName: 'abc',
+				phone: '13212345678',
+				address: 'New York City',
+				email: 'ABC@Gmail.com',
+				bookName: 'CC',
+				num: 3,
+				totalPrice: 4,*/
+
+                addForm: {
+                    clientName: 'asd',
+                    phone: '15013551934',
+                    address: 'shenzhen',
+                    email: 'asd@gmail.com',
+                    bookId: '',
+                    bookName: '冰与火之歌1',
+                    num: '2',
+                    totalPrice: '32.9',
+                    userId: ''
+                },
+
+                actionForm:{
+                    id: '',
+                    billState: 0
+                },
+                // bookList: [],
+                bookList: [{
+                    id: '1',
+                    bookName: '冰与火之歌1',
+                    bookClass: 1,
+                    className: '',
+                    price: 32.9,
+                },{
+                    id: '2',
+                    bookName: '冰与火之歌2',
+                    bookClass: 2,
+                    className: '',
+                    price: 32.9
+                }],
+                tableData: [],
+                /*tableData: [{
+                    id: '1',
+                    billState: 0,
+                    clientName: 'abc',
+                    phone: '13212345678',
+                    address: 'New York City',
+                    email: 'ABC@Gmail.com',
+                    bookName: 'CC',
+                    num: 3,
+                    totalPrice: 4,
+                },{
+                    id: '2',
+                    billState: 1,
+                    clientName: 'asd',
+                    phone: '13287654321',
+                    address: 'New York City',
+                    email: 'ASD@Gmail.com',
+                    bookName: 'SS',
+                    num: 2,
+                    totalPrice: 13,
+                },{
+                    id: '3',
+                    billState: 2,
+                    clientName: 'asd',
+                    phone: '13287654321',
+                    address: 'New York City',
+                    email: 'ASD@Gmail.com',
+                    bookName: 'SS',
+                    num: 2,
+                    totalPrice: 13,
+                },{
+                    id: '4',
+                    billState: 3,
+                    clientName: 'asd',
+                    phone: '13287654321',
+                    address: 'New York City',
+                    email: 'ASD@Gmail.com',
+                    bookName: 'SS',
+                    num: 2,
+                    totalPrice: 13,
+                }]*/
+            }
+        },
+
+        created() {
+            this.getbill();
+            this.getAllBook();
+            this.addForm.userId = localStorage.getItem('userId');
+        },
+
+        methods: {
+
+            getbill(){
+                const params = {
+                    page: this.page,
+                    input: this.input === '' ? undefined : this.input
+                }
+                const url = 'bill'
+                submitGet('get', url, params).then(res => {
+                    //console.log(res);
+                    if(res.data.code === 1) {
+                        this.tableData = res.data.data.records;
+                        this.total = parseInt(res.data.data.total);
+                    }
+                }).catch(err => {
+                    this.$message.error('请求出错了：' + err)
+                })
+            },
+
+            getAllBook() {
+                //console.log(params.name)
+                const url = 'book/all'
+                //console.log(url)
+                //调用axios发送请求
+                submitGet('get', url).then(res => {
+                    //console.log(res.data.data);
+                    if (String(res.data.code) === '1') {
+                        //console.log('更改数据');
+                        this.bookList = res.data.data;
+                        //console.log(this.bookList);
+                    }
+                }).catch(err => {
+                    this.$message.error('请求出错了：' + err)
+                })
+            },
+
+            pageChange(val) {
+                this.page = val;
+                this.getbill();
+            },
+
+            openDialog() {
+                this.$nextTick(function () {
+                    this.$refs.addDialog.resetField();
+                });
+            },
+
+            changeBookName() {
+                this.changeNum();
+                //this.$refs.addForm.price.clearValidate();
+            },
+
+            changeNum() {
+                const book = this.bookList.find(book => book.bookName === this.addForm.bookName);
+                let price = this.addForm.num * book.price;
+                this.addForm.totalPrice = price.toFixed(2);
+            },
+
+            createFilter(queryString) {
+                return (book) => {
+                    return (book.bookName.toLowerCase().indexOf(queryString.toLowerCase()) === 0);
+                };
+            },
+
+            querySearch(queryString, callback) {
+                let books = this.bookList;
+                books.forEach((book) => {
+                    book['value'] = book.bookName;
+                    //console.log(book)
+                });
+                let results = queryString ? books.filter(this.createFilter(queryString)) : books;
+                // 调用 callback 返回建议列表的数据
+                return callback(results);
+            },
+
+            findBookName(bookName) {
+                return this.bookList.find((item) => {
+                    return item.bookName === bookName;
+                })
+            },
+
+            /*
+			id: 1,
+			billState: 0,
+			clientName: 'abc',
+			phone: '13212345678',
+			address: 'New York City',
+			email: 'ABC@Gmail.com',
+			bookName: 'CC',
+			num: 3,
+			totalPrice: 4,
+			*/
+            addSubmit() {
+                this.$refs.addForm.validate((valid) => {
+                    if(valid) {
+                        this.addForm.userId = localStorage.getItem('userId');
+                        const updateData = {
+                            clientName: this.addForm.clientName,
+                            phone: this.addForm.phone,
+                            address: this.addForm.address,
+                            email: this.addForm.email,
+                            bookId: this.addForm.bookId,
+                            num: this.addForm.num,
+                            totalPrice: this.addForm.totalPrice,
+                            userId: this.addForm.userId
+                        };
+                        const url = 'bill';
+                        submitData('post', url, updateData).then(res => {
+                            if(res.data.code === 1) {
+                                this.$message.success('新增订单成功');
+                                this.getbill();
+                                this.addDialog = false;
+                            } else {
+                                this.$message.error('添加失败' + res.data.data);
+                            }
+                        }).catch(err => {
+                            this.$message.error('出错' + err);
+                        })
+                    }
+                })
+            },
+
+            actionHandle(row) {
+                this.actionForm.id = row.id;
+                if(row.billState === 0) {
+                    this.dialogTitle = '用户已下单？'
+                } else if(row.billState === 1) {
+                    this.dialogTitle = '已发货？'
+                } else if(row.billState === 2) {
+                    this.dialogTitle = '订单完成？'
+                } else {
+                    this.dialogTitle = '订单已完成'
+                }
+                this.actionForm.billState = row.billState;
+                this.actionForm.billState ++;
+                this.actionDialog = true;
+            },
+
+            actionSubmit() {
+                const updateData = {
+                    id: this.actionForm.id,
+                    billState: this.actionForm.billState
+                }
+                const url = 'bill/state'
+                submitData('put', url, updateData).then(res => {
+                    if(res.data.code === 1) {
+                        this.$message.success(res.data.data);
+                        this.getbill();
+                        this.actionDialog = false;
+                    } else {
+                        this.$message.warning(res.data.message);
+                    }
+                }).catch(err => {
+                    this.$message.error('出错：' + err);
+                })
+            },
+
+        },
+    })
+
+</script>
+
+</body>
+</html>

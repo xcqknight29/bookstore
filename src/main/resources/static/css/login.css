@@ -1,0 +1,35 @@
+div.login-page {
+    overflow: hidden;
+    display: flex;
+    background-image: url("../images/login_bg.png");
+    background-size: cover;
+    background-color: #1B1B1B;
+    height: 100%;
+}
+
+div.login-app{
+    text-align: center;
+    position: fixed;
+    left: 100px;
+    bottom: 50px;
+    border-radius: 80px;
+    padding: 50px 60px 20px 60px;
+    width: 470px;
+    height: 330px;
+    background-color: rgba(51, 51, 51, 0.95);
+}
+
+.el-form-item__label {
+    color: #F5B538;
+}
+
+.image.login_icon {
+    height: 50px;
+    width: 50px;
+    border-radius: 4px;
+    background-color: #E6E6E6;
+}
+
+.login_title {
+    color: #F5B538;
+}

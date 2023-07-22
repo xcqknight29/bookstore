@@ -1,0 +1,33 @@
+div.edit-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #373b44;
+    height: 100%;
+}
+
+div.edit-app {
+    text-align: center;
+    position: fixed;
+    width: 470px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    padding: 50px 50px 20px 30px;
+}
+
+.account_icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+}
+
+.account_text {
+    color: #606266;
+}
+
+.el-input.is-disabled .el-input__inner {
+    background-color: #f9f9f9;
+    border-color: #f9f9f9;
+    color: #606266;
+    cursor: default;
+}

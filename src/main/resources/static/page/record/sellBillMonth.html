@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>sellBillMonth</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="../../css/common.css">
+    <!--  <link rel="stylesheet" href="../../css/bill.css">-->
+</head>
+<body>
+<div class="app" style="height: 100%;">
+    <el-container style="height: 100%;">
+        <el-header>
+
+            <!-- 月份选择器 -->
+            <el-date-picker
+                    v-model="month"
+                    type="month"
+                    placeholder="选择月份"
+                    @change="monthChange">
+            </el-date-picker>
+
+            <!-- 搜索记录 -->
+            <!--<el-input v-model="input"
+                      placeholder="查询记录"
+                      style="width: 250px"
+                      @keyup.enter.native="getRecord">
+                <i slot="suffix"
+                   class="el-input__icon el-icon-search"
+                   style="cursor: pointer"
+                   @click="getRecord"></i>
+            </el-input>-->
+
+        </el-header>
+        <el-main>
+            <!--
+			表格
+			String bookName; 对应图书的名称
+			Long num; 售出数量
+			Double totalPrice; 总价
+			Date updateTime; 月份
+			-->
+            <el-table :data="tableData"
+                      stripe
+                      height="100%"
+                      :empty-text=" month ? '暂无数据' : '请选择月份' ">
+                <el-table-column prop="bookId" label="书名">
+                    <template slot-scope="scope">
+                        {{ getBookName(scope.row.bookId) }}
+                    </template>
+                </el-table-column>
+                <el-table-column prop="bookNum" label="售出数量"></el-table-column>
+                <el-table-column prop="totalPrice" label="总销售额"></el-table-column>
+            </el-table>
+
+        </el-main>
+        <el-footer>
+            <el-pagination
+                    :current-page="this.page"
+                    :page-size="20"
+                    :pager-count="11"
+                    layout="prev, pager, next"
+                    :total="this.total"
+                    :background="true"
+                    @current-change="pageChange">
+            </el-pagination>
+        </el-footer>
+    </el-container>
+</div>
+
+<!--  导入vue.js  -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<!--  导入elementUi  -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<!--  导入axios  -->
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<!--  通用js  -->
+<script src="../../js/common.js"></script>
+<!--  axios配置  -->
+<script src="../../js/request.js"></script>
+
+<script>
+    new Vue({
+
+        el: '.app',
+
+        data() {
+            return {
+
+                page: 1,
+                total: 0,
+                month: '',
+                input: '',
+                inputWidth: '25%',
+                tableData: [],
+
+                /*tableData4: [
+                    {
+                        "id": "1650064683266965505",
+                        "bookId": "2",
+                        "bookName": "AAAA",
+                        "totalPrice": 90,
+                        "num": 9,
+                        "updateTime": "2023-04",
+                        "createTime": "2023-04",
+                        "increase": true
+                    },
+                    {
+                        "id":"1650064022697639938",
+                        "bookId":"1",
+                        "bookName":"AAA",
+                        "totalPrice":1,
+                        "num":8,
+                        "updateTime":"2023-04",
+                        "createTime":"2023-04",
+                        "increase":false
+                    },
+                    {
+                        "id":"1650064022697639938",
+                        "bookId":"1",
+                        "bookName":"海洋帝国（xxx出版社20xx年版）",
+                        "totalPrice":12,
+                        "num":1,
+                        "updateTime":"2023-04",
+                        "createTime":"2023-04",
+                        "increase":false
+                    }
+                ]*/
+
+                bookList: [],
+
+            }
+        },
+
+        created() {
+            // this.getRecord();
+        },
+
+        methods: {
+
+            getBook() {
+                let url = 'book/all'
+                submitGet('get', url).then(res => {
+                    if (res.data.code === 1) {
+                        this.bookList = res.data.data;
+                        this.total = parseInt(res.data.data.total);
+                    } else {
+                        this.$message.error('请求出错了：' + res.data.msg);
+                    }
+                }).catch(err => {
+                    this.$message.error('请求出错了：' + err);
+                })
+            },
+
+            getRecord() {
+                this.getBook();
+                if(this.month) {
+                    const url = 'record/bill/month';
+                    const params = {
+                        page: this.page,
+                        month: this.month,
+                    };
+                    submitGet('get', url, params).then(res => {
+                        if (res.data.code === 1) {
+                            this.tableData = res.data.data.records;
+                            this.total = parseInt(res.data.data.total);
+                        } else {
+                            this.$message.error('请求出错了：' + res.data.msg);
+                        }
+                    }).catch(err => {
+                        this.$message.error('请求出错了：' + err);
+                    })
+                }
+            },
+
+            getBookName(bookId) {
+                let book = this.bookList.find(book => book.id === bookId);
+                if(book) {
+                    return book.bookName;
+                } else {
+                    return '图书不存在';
+                }
+            },
+
+            pageChange(val) {
+                this.page = val;
+                this.getRecord();
+            },
+
+            monthChange() {
+                this.page = 1;
+                this.getRecord();
+            },
+
+        },
+    })
+</script>
+</body>
+</html>

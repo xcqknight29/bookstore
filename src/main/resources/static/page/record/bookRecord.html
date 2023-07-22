@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BookStorageRecordManage</title>
+    <!--  <link rel="stylesheet" href="../../css/bill.css">-->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="../../css/common.css">
+</head>
+<body>
+<div class="app" style="height: 100%;">
+    <el-container style="height: 100%;">
+        <el-header>
+
+            <!-- 搜索图书 -->
+            <el-input v-model="input"
+                      placeholder="查询记录"
+                      style="width: 250px"
+                      @keyup.enter.native="getRecord">
+                <i slot="suffix"
+                   class="el-input__icon el-icon-search"
+                   style="cursor: pointer"
+                   @click="getRecord"></i>
+            </el-input>
+
+        </el-header>
+        <el-main>
+            <!--
+			表格(数据库用)
+			Long id; 账单id
+			String bookId; 对应的图书id
+			String bookName; 对应图书的名称
+			boolean isIncrease; 入库:出库 true:false
+			Double price; 图书单价
+			Long num; 图书数量
+			Date updateTime; 更新时间（通常铜创建时间）
+			Date createTime; 创建时间
+			-->
+            <el-table :data="tableData"
+                      stripe
+                      height="100%">
+                <el-table-column prop="bookName" label="书名"></el-table-column>
+                <el-table-column prop="increase" label="操作类型">
+                    <template slot-scope="scope">
+                        <el-tag :type="scope.row.num > 0 ? 'success' : 'warning'">
+                            {{ scope.row.num > 0 ? '入库' : '出库' }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="num" label="数量">
+                    <template slot-scope="scope">
+                        {{ scope.row.num > 0 ? scope.row.num : -scope.row.num }}
+                    </template>
+                </el-table-column>
+                <el-table-column prop="createTime" label="时间"></el-table-column>
+            </el-table>
+
+        </el-main>
+        <el-footer>
+            <el-pagination
+                    :current-page="this.page"
+                    :page-size="20"
+                    :pager-count="11"
+                    layout="prev, pager, next"
+                    :total="this.total"
+                    :background="true"
+                    @current-change="pageChange">
+            </el-pagination>
+        </el-footer>
+    </el-container>
+</div>
+
+<!--  导入vue.js  -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<!--  导入elementUi  -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<!--  导入axios  -->
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<!--  通用js  -->
+<script src="../../js/common.js"></script>
+<!--  axios配置  -->
+<script src="../../js/request.js"></script>
+
+<script>
+    new Vue({
+
+        el: '.app',
+
+        data() {
+            return {
+                page: 1,
+                total: 0,
+                month: '',
+                input: '',
+                inputWidth: '25%',
+                /*
+						表格(数据库用)
+						Long id; 账单id
+						String bookId; 对应的图书id
+						String bookName; 对应图书的名称
+						boolean isIncrease; 入库:出库 true:false
+						Double price; 图书单价
+						Long num; 图书数量
+						Date updateTime; 更新时间（通常同创建时间）
+						Date createTime; 创建时间
+				*/
+                tableData: [],
+                /*tableData: [{
+                    id: '1618521775229566977',
+                    bookId: '1617769096911986690',
+                    bookName: '冰与火之歌2',
+                    increase: false,
+                    price: 14.53,
+                    num: 2,
+                    totalPrice: 0,
+                    updateTime: '2023-01-23 19:35:11',
+                    createTime: '2023-01-23 19:35:11',
+                }, {
+                    id: '1618521775229566977',
+                    bookId: '1617769096911986690',
+                    bookName: '冰与火之歌4',
+                    increase: true,
+                    price: 14.53,
+                    num: 1,
+                    totalPrice: 0,
+                    updateTime: '2023-01-23 19:35:11',
+                    createTime: '2023-01-23 19:35:11',
+                }]*/
+            }
+        },
+
+        created() {
+            this.getRecord();
+        },
+
+        methods: {
+
+            getRecord() {
+                const url = 'record/book';
+                const params = {
+                    page: this.page,
+                    input: this.input ? this.input : undefined,
+                };
+                submitGet('get', url, params).then(res => {
+                    if (res.data.code === 1) {
+                        this.tableData = res.data.data.records;
+                        this.total = parseInt(res.data.data.total);
+                    }
+                }).catch(err => {
+                    this.$message.error('请求出错了：' + err);
+                })
+            },
+
+            pageChange(val) {
+                this.page = val;
+                this.getRecord();
+            },
+
+        },
+    })
+</script>
+</body>
+</html>
